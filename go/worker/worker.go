@@ -37,10 +37,10 @@ func Run(workerId int, workerTube string, workerFunc WorkFunc, deadWorker chan<-
 	}()
 
 	var req Request
+	var watch = beanstalk.NewTubeSet(beanConn, workerTube)
 
 	for {
-		beanConn.Tube.Name = workerTube
-		id, msg, err := beanConn.Reserve(10 * time.Second)
+		id, msg, err := watch.Reserve(10 * time.Second)
 		if err != nil {
 			cerr, ok := err.(beanstalk.ConnError)
 			if ok && cerr.Err == beanstalk.ErrTimeout {
@@ -73,11 +73,13 @@ func Run(workerId int, workerTube string, workerFunc WorkFunc, deadWorker chan<-
 		}
 		fmt.Printf("[%d:%d] %s\n", workerId, time.Now().UnixNano(), string(jsonRes))
 
-		beanConn.Tube.Name = tube
-		_, err = beanConn.Put(jsonRes, 0, 0, (3600 * time.Second))
-		if err != nil {
-			fmt.Println("BEANSTALK WRITE:", err)
-			panic("write err")
+		if tube != "" {
+			beanConn.Tube.Name = tube
+			_, err = beanConn.Put(jsonRes, 0, 0, (3600 * time.Second))
+			if err != nil {
+				fmt.Println("BEANSTALK WRITE:", err)
+				panic("write err")
+			}
 		}
 
 		beanConn.Delete(id)
