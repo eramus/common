@@ -21,24 +21,25 @@ type Response struct {
 
 type WorkFunc func(int, *Request) (Response, string, error)
 
-func Run(workerId int, workerFunc WorkFunc, deadWorker chan<- bool) {
+func Run(workerId int, workerTube string, workerFunc WorkFunc, deadWorker chan<- bool) {
 	beanConn, err := beanstalk.Dial("tcp", "0.0.0.0:11300")
 	if err != nil {
 		fmt.Println("BEANSTALK:", err)
 		return
 	}
 	defer func() {
-		r := recover()
-		if r != nil {
-			fmt.Println("PANIC:", r)
-			deadWorker <- true
-		}
+		/*		r := recover()
+				if r != nil {
+					fmt.Println("PANIC:", r)
+					deadWorker <- true
+				}*/
 		beanConn.Close()
 	}()
 
 	var req Request
 
 	for {
+		beanConn.Tube.Name = workerTube
 		id, msg, err := beanConn.Reserve(10 * time.Second)
 		if err != nil {
 			cerr, ok := err.(beanstalk.ConnError)
