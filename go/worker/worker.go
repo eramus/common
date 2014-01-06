@@ -22,7 +22,6 @@ type Response struct {
 type WorkFunc func(int, *Request) (Response, string, error)
 
 func Run(workerId int, workerFunc WorkFunc, deadWorker chan<- bool) {
-
 	beanConn, err := beanstalk.Dial("tcp", "0.0.0.0:11300")
 	if err != nil {
 		fmt.Println("BEANSTALK:", err)
